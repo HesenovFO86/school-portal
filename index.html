@@ -1,15 +1,141 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Школьный портал</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
   <div class="container mx-auto p-4">
     <h1 class="text-3xl font-bold mb-4">Школьный портал</h1>
-    <p>Это ваша школа! Скоро здесь будут классы и ученики.</p>
+
+    <div id="classForm" class="bg-white p-4 rounded shadow mb-4">
+      <h2 class="text-xl font-semibold mb-2">Добавить класс</h2>
+      <input id="className" class="border p-2 mr-2" placeholder="Название класса" />
+      <input id="teacherName" class="border p-2 mr-2" placeholder="Имя учителя" />
+      <button onclick="addClass()" class="bg-blue-500 text-white px-4 py-2 rounded">Добавить класс</button>
+    </div>
+
+    <div id="classList" class="space-y-4"></div>
   </div>
+
+  <script>
+    const classListEl = document.getElementById('classList');
+    const savedClasses = JSON.parse(localStorage.getItem('classes') || '[]');
+
+    let classes = savedClasses;
+
+    function saveClasses() {
+      localStorage.setItem('classes', JSON.stringify(classes));
+    }
+
+    function addClass() {
+      const className = document.getElementById('className').value.trim();
+      const teacherName = document.getElementById('teacherName').value.trim();
+      if (!className || !teacherName) return;
+
+      classes.push({ className, teacherName, students: [], videos: [], tests: [], meets: [], chat: [] });
+      saveClasses();
+      renderClasses();
+      document.getElementById('className').value = '';
+      document.getElementById('teacherName').value = '';
+    }
+
+    function renderClasses() {
+      classListEl.innerHTML = '';
+      classes.forEach((cls, index) => {
+        const div = document.createElement('div');
+        div.className = "bg-white p-4 rounded shadow";
+        div.innerHTML = `
+          <h2 class="text-xl font-bold">${cls.className} — ${cls.teacherName}</h2>
+          <div class="mt-2">
+            <input placeholder="Имя ученика" class="border p-1 mr-2" id="student-${index}" />
+            <button onclick="addStudent(${index})" class="bg-green-500 text-white px-2 py-1 rounded">Добавить ученика</button>
+          </div>
+          <ul class="list-disc list-inside text-sm mt-2">
+            ${cls.students.map(s => `<li>👨‍🎓 ${s}</li>`).join('')}
+          </ul>
+          <div class="mt-4">
+            <input placeholder="Ссылка на видео (YouTube)" class="border p-1 mr-2" id="video-${index}" />
+            <button onclick="addVideo(${index})" class="bg-indigo-500 text-white px-2 py-1 rounded">Добавить видео</button>
+            <ul class="list-disc list-inside text-sm mt-2">
+              ${cls.videos.map(v => `<li><a href="${v}" class="text-blue-600 underline" target="_blank">${v}</a></li>`).join('')}
+            </ul>
+          </div>
+          <div class="mt-4">
+            <input placeholder="Название теста" class="border p-1 mr-2" id="test-${index}" />
+            <button onclick="addTest(${index})" class="bg-yellow-500 text-white px-2 py-1 rounded">Добавить тест</button>
+            <ul class="list-disc list-inside text-sm mt-2">
+              ${cls.tests.map(t => `<li>📝 ${t}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="mt-4">
+            <input placeholder="Ссылка на Google Meet / Zoom" class="border p-1 mr-2" id="meet-${index}" />
+            <button onclick="addMeet(${index})" class="bg-purple-500 text-white px-2 py-1 rounded">Добавить встречу</button>
+            <ul class="list-disc list-inside text-sm mt-2">
+              ${cls.meets.map(m => `<li><a href="${m}" class="text-blue-600 underline" target="_blank">${m}</a></li>`).join('')}
+            </ul>
+          </div>
+          <div class="mt-4">
+            <input placeholder="Сообщение" class="border p-1 mr-2" id="chat-${index}" />
+            <button onclick="addChat(${index})" class="bg-gray-700 text-white px-2 py-1 rounded">Отправить</button>
+            <ul class="text-sm mt-2">
+              ${cls.chat.map(c => `<li>💬 ${c}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+        classListEl.appendChild(div);
+      });
+    }
+
+    function addStudent(index) {
+      const input = document.getElementById(`student-${index}`);
+      if (input.value.trim()) {
+        classes[index].students.push(input.value.trim());
+        input.value = '';
+        saveClasses(); renderClasses();
+      }
+    }
+
+    function addVideo(index) {
+      const input = document.getElementById(`video-${index}`);
+      if (input.value.trim()) {
+        classes[index].videos.push(input.value.trim());
+        input.value = '';
+        saveClasses(); renderClasses();
+      }
+    }
+
+    function addTest(index) {
+      const input = document.getElementById(`test-${index}`);
+      if (input.value.trim()) {
+        classes[index].tests.push(input.value.trim());
+        input.value = '';
+        saveClasses(); renderClasses();
+      }
+    }
+
+    function addMeet(index) {
+      const input = document.getElementById(`meet-${index}`);
+      if (input.value.trim()) {
+        classes[index].meets.push(input.value.trim());
+        input.value = '';
+        saveClasses(); renderClasses();
+      }
+    }
+
+    function addChat(index) {
+      const input = document.getElementById(`chat-${index}`);
+      if (input.value.trim()) {
+        classes[index].chat.push(input.value.trim());
+        input.value = '';
+        saveClasses(); renderClasses();
+      }
+    }
+
+    // при запуске
+    renderClasses();
+  </script>
 </body>
 </html>
