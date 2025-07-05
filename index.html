@@ -2,135 +2,147 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>School Portal</title>
-  <script type="module">
-    // Firebase setup
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Школьный портал</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    input, select, button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #0057d0;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2 id="title">Школьный портал</h2>
+    <input type="text" id="username" placeholder="Имя">
+    <input type="password" id="password" placeholder="Пароль">
+    <button id="loginBtn">Войти</button>
+    <select id="language">
+      <option value="ru">Русский</option>
+      <option value="en">English</option>
+      <option value="az">Azərbaycanca</option>
+    </select>
+  </div>
 
+  <script>
+    // Firebase config (замени на свой при необходимости)
     const firebaseConfig = {
-      apiKey: "AIzaSyDSU7JH_P1lVtyn_yWGZTk8VVT4TkbEK76M",
+      apiKey: "AIzaSyDSU7JH_P1IVtyn_yWGZTk8VVT4TkEk76M",
       authDomain: "school-portal-5e058.firebaseapp.com",
       projectId: "school-portal-5e058",
       storageBucket: "school-portal-5e058.appspot.com",
-      messagingSenderId: "288058178593",
-      appId: "1:288058178593:web:13b88ee9549bc8c96695f0"
+      messagingSenderId: "2880581785937",
+      appId: "1:2880581785937:web:13b88ee9549bc8c96695f0"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const elements = {
+      title: document.getElementById("title"),
+      username: document.getElementById("username"),
+      password: document.getElementById("password"),
+      loginBtn: document.getElementById("loginBtn"),
+      language: document.getElementById("language")
+    };
 
     const translations = {
       ru: {
         title: "Школьный портал",
-        enterId: "Введите имя пользователя",
-        enterPassword: "Введите пароль",
+        username: "Имя",
+        password: "Пароль",
         login: "Войти",
         error: "Неверное имя или пароль!",
         welcome: "Добро пожаловать"
       },
       en: {
         title: "School Portal",
-        enterId: "Enter username",
-        enterPassword: "Enter password",
+        username: "Username",
+        password: "Password",
         login: "Login",
-        error: "Invalid username or password!",
+        error: "Invalid name or password!",
         welcome: "Welcome"
       },
       az: {
-        title: "Məktəb portalı",
-        enterId: "İstifadəçi adını daxil edin",
-        enterPassword: "Şifrəni daxil edin",
+        title: "Məktəb Portalı",
+        username: "Ad",
+        password: "Şifrə",
         login: "Daxil ol",
-        error: "Yanlış istifadəçi adı və ya şifrə!",
+        error: "Yanlış ad və ya şifrə!",
         welcome: "Xoş gəlmisiniz"
       }
     };
 
-    let currentLang = 'ru';
-
-    function setLanguage(lang) {
-      currentLang = lang;
+    function applyLanguage(lang) {
       const t = translations[lang];
-      document.getElementById('title').innerText = t.title;
-      document.getElementById('username').placeholder = t.enterId;
-      document.getElementById('password').placeholder = t.enterPassword;
-      document.getElementById('loginBtn').innerText = t.login;
+      elements.title.textContent = t.title;
+      elements.username.placeholder = t.username;
+      elements.password.placeholder = t.password;
+      elements.loginBtn.textContent = t.login;
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      setLanguage('ru');
+    elements.language.addEventListener("change", () => {
+      applyLanguage(elements.language.value);
+    });
 
-      document.getElementById("lang").addEventListener("change", (e) => {
-        setLanguage(e.target.value);
-      });
+    applyLanguage("ru"); // default
 
-      document.getElementById("loginBtn").addEventListener("click", async () => {
-        const id = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-        if (!id || !password) return;
+    elements.loginBtn.addEventListener("click", async () => {
+      const name = elements.username.value.trim();
+      const pass = elements.password.value.trim();
+      const lang = elements.language.value;
+      const t = translations[lang];
 
-        const docRef = doc(db, "accessCodes", id);
-        const docSnap = await getDoc(docRef);
+      if (!name || !pass) {
+        alert(t.error);
+        return;
+      }
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.password === password) {
-            alert(`${translations[currentLang].welcome}: ${id} (${data.role})`);
-          } else {
-            alert(translations[currentLang].error);
-          }
-        } else {
-          alert(translations[currentLang].error);
+      try {
+        const doc = await db.collection("accessCodes").doc(name).get();
+        if (!doc.exists) {
+          alert(t.error);
+          return;
         }
-      });
+
+        const data = doc.data();
+        if (data.password === pass) {
+          alert(`${t.welcome}: ${name} (${data.role})`);
+        } else {
+          alert(t.error);
+        }
+      } catch (e) {
+        alert("Ошибка подключения к базе.");
+        console.error(e);
+      }
     });
   </script>
-  <style>
-    body {
-      background: #e9f0ff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .card {
-      background: white;
-      padding: 2rem;
-      border-radius: 1rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      text-align: center;
-      width: 320px;
-    }
-    input, select, button {
-      width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background-color: #2563eb;
-      color: white;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2 id="title">Школьный портал</h2>
-    <input type="text" id="username" placeholder="Введите имя пользователя" />
-    <input type="password" id="password" placeholder="Введите пароль" />
-    <button id="loginBtn">Войти</button>
-    <select id="lang">
-      <option value="az">Azərbaycanca</option>
-      <option value="en">English</option>
-      <option value="ru" selected>Русский</option>
-    </select>
-  </div>
 </body>
 </html>
