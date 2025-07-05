@@ -51,6 +51,20 @@
       font-size: 14px;
       min-height: 20px;
     }
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4285f4;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+      display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -59,6 +73,7 @@
     <input type="text" id="username" placeholder="Имя пользователя">
     <input type="password" id="password" placeholder="Пароль">
     <button id="loginBtn">Войти</button>
+    <div class="loader" id="loader"></div>
     <div id="error" class="error"></div>
     <select id="language">
       <option value="ru" selected>Русский</option>
@@ -67,11 +82,12 @@
     </select>
   </div>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
 
   <script>
-    // Конфигурация Firebase (убедитесь что данные верные)
+    // Конфигурация Firebase (проверьте правильность данных!)
     const firebaseConfig = {
       apiKey: "AIzaSyDSU7JH_P1IVtyn_yWGZTk8VVT4TkEk76M",
       authDomain: "school-portal-5e058.firebaseapp.com",
@@ -82,13 +98,30 @@
     };
 
     // Инициализация Firebase
+    let firebaseApp;
     let db;
+    
     try {
-      const app = firebase.initializeApp(firebaseConfig);
+      // Проверяем, не инициализировано ли уже приложение
+      if (!firebase.apps.length) {
+        firebaseApp = firebase.initializeApp(firebaseConfig);
+      } else {
+        firebaseApp = firebase.app();
+      }
+      
       db = firebase.firestore();
       console.log("Firebase успешно инициализирован");
+      
+      // Проверка подключения к Firestore
+      db.collection("testConnection").doc("test").get()
+        .then(() => console.log("Firestore подключен успешно"))
+        .catch(error => {
+          console.error("Ошибка подключения к Firestore:", error);
+          showError("Ошибка подключения к базе данных");
+        });
+        
     } catch (error) {
-      console.error("Ошибка инициализации Firebase:", error);
+      console.error("Критическая ошибка инициализации Firebase:", error);
       showError("Ошибка подключения к системе");
     }
 
@@ -98,7 +131,8 @@
       password: document.getElementById('password'),
       loginBtn: document.getElementById('loginBtn'),
       language: document.getElementById('language'),
-      error: document.getElementById('error')
+      error: document.getElementById('error'),
+      loader: document.getElementById('loader')
     };
 
     const translations = {
@@ -111,6 +145,7 @@
         emptyFields: "Введите имя и пароль",
         invalidCredentials: "Неверное имя или пароль",
         connectionError: "Ошибка подключения к серверу",
+        firebaseError: "Ошибка подключения к базе данных",
         welcome: "Добро пожаловать"
       },
       en: {
@@ -122,6 +157,7 @@
         emptyFields: "Enter username and password",
         invalidCredentials: "Invalid username or password",
         connectionError: "Server connection error",
+        firebaseError: "Database connection error",
         welcome: "Welcome"
       },
       az: {
@@ -133,6 +169,7 @@
         emptyFields: "İstifadəçi adı və şifrə daxil edin",
         invalidCredentials: "Yanlış istifadəçi adı və ya şifrə",
         connectionError: "Serverə qoşulma xətası",
+        firebaseError: "Verilənlər bazasına qoşulma xətası",
         welcome: "Xoş gəlmisiniz"
       }
     };
@@ -157,7 +194,12 @@
       elements.error.textContent = message;
       setTimeout(() => {
         elements.error.textContent = '';
-      }, 3000);
+      }, 5000);
+    }
+    
+    function showLoader(show) {
+      elements.loader.style.display = show ? 'block' : 'none';
+      elements.loginBtn.style.display = show ? 'none' : 'block';
     }
 
     // Смена языка
@@ -184,13 +226,14 @@
 
       // Блокировка кнопки во время запроса
       elements.loginBtn.disabled = true;
+      showLoader(true);
       const originalButtonText = elements.loginBtn.textContent;
       elements.loginBtn.textContent = t.loading;
 
       try {
-        // Проверяем что Firebase инициализирован
-        if (!db) {
-          showError(t.connectionError);
+        // Проверяем инициализацию Firebase
+        if (!firebaseApp || !db) {
+          showError(t.firebaseError);
           return;
         }
 
@@ -215,8 +258,25 @@
       } finally {
         elements.loginBtn.disabled = false;
         elements.loginBtn.textContent = originalButtonText;
+        showLoader(false);
       }
     }
+    
+    // Проверка соединения при загрузке
+    async function checkFirebaseConnection() {
+      try {
+        if (!db) return;
+        
+        await db.collection("testConnection").doc("test").get();
+        console.log("Firestore connection OK");
+      } catch (error) {
+        console.error("Firestore connection error:", error);
+        showError(translations[currentLang].firebaseError);
+      }
+    }
+    
+    // Проверяем соединение через 1 секунду после загрузки
+    setTimeout(checkFirebaseConnection, 1000);
   </script>
 </body>
 </html>
