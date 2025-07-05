@@ -12,6 +12,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      margin: 0;
     }
     .container {
       background: white;
@@ -19,6 +20,7 @@
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       text-align: center;
+      width: 300px;
     }
     input, select, button {
       display: block;
@@ -27,12 +29,21 @@
       margin-top: 1rem;
       border-radius: 5px;
       border: 1px solid #ccc;
+      box-sizing: border-box;
     }
     button {
       background-color: #0057d0;
       color: white;
       font-weight: bold;
       cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #003d9e;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
     }
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
@@ -41,12 +52,12 @@
 <body>
   <div class="container">
     <h2 id="title">School Portal</h2>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
+    <input type="text" id="username" placeholder="Username" autocomplete="username">
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password">
     <button id="loginBtn">Login</button>
     <select id="language">
       <option value="ru">Русский</option>
-      <option value="en">English</option>
+      <option value="en" selected>English</option>
       <option value="az">Azərbaycanca</option>
     </select>
   </div>
@@ -62,8 +73,18 @@
       appId: "1:2880581785937:web:13b88ee9549bc8c96695f0"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // Инициализация Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+      
+      // Проверка подключения
+      db.collection("test").doc("test").get()
+        .then(() => console.log("Connected to Firestore"))
+        .catch(e => console.error("Firestore connection error:", e));
+    } catch (e) {
+      console.error("Firebase initialization error:", e);
+    }
 
     const elements = {
       title: document.getElementById("title"),
@@ -76,27 +97,30 @@
     const translations = {
       ru: {
         title: "Школьный портал",
-        username: "Имя",
+        username: "Имя пользователя",
         password: "Пароль",
         login: "Войти",
         error: "Неверное имя или пароль!",
-        welcome: "Добро пожаловать"
+        welcome: "Добро пожаловать",
+        connectionError: "Ошибка подключения к базе"
       },
       en: {
         title: "School Portal",
         username: "Username",
         password: "Password",
         login: "Login",
-        error: "Invalid name or password!",
-        welcome: "Welcome"
+        error: "Invalid username or password!",
+        welcome: "Welcome",
+        connectionError: "Database connection error"
       },
       az: {
         title: "Məktəb Portalı",
-        username: "Ad",
+        username: "İstifadəçi adı",
         password: "Şifrə",
         login: "Daxil ol",
-        error: "Yanlış ad və ya şifrə!",
-        welcome: "Xoş gəlmisiniz"
+        error: "Yanlış istifadəçi adı və ya şifrə!",
+        welcome: "Xoş gəlmisiniz",
+        connectionError: "Bazaya qoşulma xətası"
       }
     };
 
@@ -108,12 +132,20 @@
       elements.loginBtn.textContent = t.login;
     }
 
+    // Установка языка по умолчанию из localStorage или браузера
+    const defaultLang = localStorage.getItem('portalLanguage') || 
+                       (navigator.language.startsWith('ru') ? 'ru' : 
+                       (navigator.language.startsWith('az') ? 'az' : 'en'));
+    elements.language.value = defaultLang;
+    applyLanguage(defaultLang);
+
     elements.language.addEventListener("change", () => {
-      applyLanguage(elements.language.value);
+      const lang = elements.language.value;
+      localStorage.setItem('portalLanguage', lang);
+      applyLanguage(lang);
     });
 
-    applyLanguage("ru"); // default
-
+    // Обработчик входа
     elements.loginBtn.addEventListener("click", async () => {
       const name = elements.username.value.trim();
       const pass = elements.password.value.trim();
@@ -125,22 +157,39 @@
         return;
       }
 
+      elements.loginBtn.disabled = true;
+      elements.loginBtn.textContent = t.login + "...";
+
       try {
-        const doc = await db.collection("accessCodes").doc(name).get();
-        if (!doc.exists) {
+        const docRef = await firebase.firestore()
+          .collection("accessCodes")
+          .doc(name)
+          .get();
+
+        if (!docRef.exists) {
           alert(t.error);
           return;
         }
 
-        const data = doc.data();
+        const data = docRef.data();
         if (data.password === pass) {
-          alert(`${t.welcome}: ${name} (${data.role})`);
+          alert(`${t.welcome}, ${name} (${data.role || 'user'})`);
         } else {
           alert(t.error);
         }
       } catch (e) {
-        alert("Ошибка подключения к базе.");
-        console.error(e);
+        console.error("Login error:", e);
+        alert(t.connectionError);
+      } finally {
+        elements.loginBtn.disabled = false;
+        elements.loginBtn.textContent = t.login;
+      }
+    });
+
+    // Обработка нажатия Enter
+    elements.password.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        elements.loginBtn.click();
       }
     });
   </script>
