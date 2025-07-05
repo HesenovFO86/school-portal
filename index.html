@@ -16,53 +16,50 @@
     }
     .container {
       background: white;
-      padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      width: 350px;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 320px;
       text-align: center;
-    }
-    h2 {
-      color: #2c3e50;
-      margin-bottom: 1.5rem;
     }
     input, select, button {
       width: 100%;
       padding: 12px;
-      margin: 0.8rem 0;
+      margin: 10px 0;
       border: 1px solid #ddd;
-      border-radius: 8px;
+      border-radius: 6px;
       font-size: 16px;
       box-sizing: border-box;
     }
     button {
-      background-color: #3498db;
+      background-color: #4285f4;
       color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background 0.2s;
     }
     button:hover {
-      background-color: #2980b9;
+      background-color: #3367d6;
     }
     button:disabled {
-      background: #95a5a6;
+      background: #cccccc;
       cursor: not-allowed;
     }
-    .error-message {
-      color: #e74c3c;
-      margin-top: 1rem;
-      display: none;
+    .error {
+      color: #d32f2f;
+      margin-top: 10px;
+      font-size: 14px;
+      min-height: 20px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h2 id="title">Школьный портал</h2>
-    <input type="text" id="username" placeholder="Имя пользователя" autocomplete="username">
-    <input type="password" id="password" placeholder="Пароль" autocomplete="current-password">
+    <input type="text" id="username" placeholder="Имя пользователя">
+    <input type="password" id="password" placeholder="Пароль">
     <button id="loginBtn">Войти</button>
-    <div id="errorMessage" class="error-message"></div>
+    <div id="error" class="error"></div>
     <select id="language">
       <option value="ru" selected>Русский</option>
       <option value="en">English</option>
@@ -70,12 +67,11 @@
     </select>
   </div>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
 
   <script>
-    // Конфигурация Firebase (замените на свои данные)
+    // Конфигурация Firebase (замените на свои реальные данные)
     const firebaseConfig = {
       apiKey: "AIzaSyDSU7JH_P1IVtyn_yWGZTk8VVT4TkEk76M",
       authDomain: "school-portal-5e058.firebaseapp.com",
@@ -88,10 +84,10 @@
     // Инициализация Firebase
     try {
       firebase.initializeApp(firebaseConfig);
-      console.log("Firebase initialized successfully");
+      console.log("Firebase успешно инициализирован");
     } catch (error) {
-      console.error("Firebase initialization error:", error);
-      showError("Ошибка инициализации базы данных");
+      console.error("Ошибка инициализации Firebase:", error);
+      showError("Ошибка подключения к системе");
     }
 
     const db = firebase.firestore();
@@ -101,37 +97,40 @@
       password: document.getElementById('password'),
       loginBtn: document.getElementById('loginBtn'),
       language: document.getElementById('language'),
-      errorMessage: document.getElementById('errorMessage')
+      error: document.getElementById('error')
     };
 
     const translations = {
       ru: {
         title: "Школьный портал",
-        username: "Имя пользователя",
-        password: "Пароль",
+        usernamePlaceholder: "Имя пользователя",
+        passwordPlaceholder: "Пароль",
         login: "Войти",
         loading: "Вход...",
-        error: "Неверное имя или пароль",
+        emptyFields: "Введите имя и пароль",
+        invalidCredentials: "Неверное имя или пароль",
         connectionError: "Ошибка подключения к серверу",
         welcome: "Добро пожаловать"
       },
       en: {
         title: "School Portal",
-        username: "Username",
-        password: "Password",
+        usernamePlaceholder: "Username",
+        passwordPlaceholder: "Password",
         login: "Login",
         loading: "Logging in...",
-        error: "Invalid username or password",
+        emptyFields: "Enter username and password",
+        invalidCredentials: "Invalid username or password",
         connectionError: "Server connection error",
         welcome: "Welcome"
       },
       az: {
         title: "Məktəb Portalı",
-        username: "İstifadəçi adı",
-        password: "Şifrə",
+        usernamePlaceholder: "İstifadəçi adı",
+        passwordPlaceholder: "Şifrə",
         login: "Daxil ol",
         loading: "Daxil olunur...",
-        error: "Yanlış istifadəçi adı və ya şifrə",
+        emptyFields: "İstifadəçi adı və şifrə daxil edin",
+        invalidCredentials: "Yanlış istifadəçi adı və ya şifrə",
         connectionError: "Serverə qoşulma xətası",
         welcome: "Xoş gəlmisiniz"
       }
@@ -148,82 +147,68 @@
       const t = translations[lang];
       
       elements.title.textContent = t.title;
-      elements.username.placeholder = t.username;
-      elements.password.placeholder = t.password;
+      elements.username.placeholder = t.usernamePlaceholder;
+      elements.password.placeholder = t.passwordPlaceholder;
       elements.loginBtn.textContent = t.login;
     }
 
     function showError(message) {
-      elements.errorMessage.textContent = message;
-      elements.errorMessage.style.display = 'block';
+      elements.error.textContent = message;
       setTimeout(() => {
-        elements.errorMessage.style.display = 'none';
-      }, 5000);
+        elements.error.textContent = '';
+      }, 3000);
     }
 
-    // Обработчик смены языка
+    // Смена языка
     elements.language.addEventListener('change', (e) => {
       applyLanguage(e.target.value);
     });
 
-    // Обработчик входа
-    elements.loginBtn.addEventListener('click', async () => {
+    // Обработка входа
+    elements.loginBtn.addEventListener('click', handleLogin);
+    elements.password.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    async function handleLogin() {
       const username = elements.username.value.trim();
       const password = elements.password.value.trim();
       const t = translations[currentLang];
 
+      // Валидация
       if (!username || !password) {
-        showError(t.error);
+        showError(t.emptyFields);
         return;
       }
 
+      // Блокировка кнопки во время запроса
       elements.loginBtn.disabled = true;
       elements.loginBtn.textContent = t.loading;
 
       try {
-        const userDoc = await db.collection("accessCodes").doc(username).get();
+        const docRef = await db.collection("accessCodes").doc(username).get();
         
-        if (!userDoc.exists) {
-          showError(t.error);
+        if (!docRef.exists) {
+          showError(t.invalidCredentials);
           return;
         }
 
-        const userData = userDoc.data();
+        const userData = docRef.data();
         
         if (userData.password === password) {
           alert(`${t.welcome}, ${username}!`);
-          // Здесь можно добавить перенаправление после входа
+          // Здесь можно добавить перенаправление после успешного входа
         } else {
-          showError(t.error);
+          showError(t.invalidCredentials);
         }
       } catch (error) {
-        console.error("Login error:", error);
+        console.error("Ошибка входа:", error);
         showError(t.connectionError);
       } finally {
         elements.loginBtn.disabled = false;
         elements.loginBtn.textContent = t.login;
       }
-    });
-
-    // Вход по нажатию Enter
-    elements.password.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        elements.loginBtn.click();
-      }
-    });
-
-    // Проверка соединения с Firestore
-    async function checkConnection() {
-      try {
-        await db.collection("test").doc("test").get();
-        console.log("Firestore connection OK");
-      } catch (error) {
-        console.error("Firestore connection error:", error);
-        showError(translations[currentLang].connectionError);
-      }
     }
-    
-    checkConnection();
   </script>
 </body>
 </html>
