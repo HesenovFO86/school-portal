@@ -4,10 +4,73 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Школьный портал</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #eef4ff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #1e40af;
+    }
+    .panel {
+      background: white;
+      padding: 20px;
+      max-width: 600px;
+      margin: 20px auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏫 Школьный портал</h1>
+
+  <div class="panel">
+    <div class="section-title">👑 Панель администратора: добавить код</div>
+    <input type="text" placeholder="Код (например: teach001)" id="newAccessCode">
+    <select id="roleSelect">
+      <option value="Учитель">Учитель</option>
+      <option value="Ученик">Ученик</option>
+    </select>
+    <button id="addAccessBtn">Добавить</button>
+  </div>
+
+  <div class="panel">
+    <div class="section-title">🔄 Сменить код администратора</div>
+    <input type="text" id="oldCode" placeholder="Старый код">
+    <input type="text" id="newCode" placeholder="Новый код">
+    <button id="changeAdminBtn">Обновить</button>
+  </div>
+
   <script type="module">
+    // Firebase SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDSU7JH_P11Vytn_yWGZTk0VV4TKbEK76M",
@@ -21,173 +84,53 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let userRole = null;
-    let classes = [];
+    // Добавление кода доступа (учитель/ученик)
+    document.getElementById("addAccessBtn").addEventListener("click", async () => {
+      const code = document.getElementById("newAccessCode").value.trim();
+      const role = document.getElementById("roleSelect").value;
 
-    window.checkAccessCode = async function () {
-      const codeInput = document.getElementById("loginCode").value.trim();
-      const q = await getDocs(collection(db, "accessCodes"));
-      let matched = false;
+      if (!code) return alert("Введите код!");
 
-      q.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.code === codeInput) {
-          userRole = data.role;
-          matched = true;
-        }
-      });
-
-      if (matched) {
-        document.getElementById("loginSection").classList.add("hidden");
-        document.getElementById("mainContent").classList.remove("hidden");
-
-        if (userRole === "admin") {
-          document.getElementById("adminPanel").classList.remove("hidden");
-          document.getElementById("changeCodePanel").classList.remove("hidden");
-        }
-
-        if (userRole === "admin" || userRole === "teacher") {
-          document.getElementById("classForm").classList.remove("hidden");
-        }
-
-        loadData();
-      } else {
-        document.getElementById("loginError").classList.remove("hidden");
+      try {
+        await setDoc(doc(db, "accessCodes", code), { role: role });
+        alert(`✅ Код ${code} добавлен как ${role}`);
+        document.getElementById("newAccessCode").value = "";
+      } catch (err) {
+        console.error(err);
+        alert("Ошибка при добавлении кода");
       }
-    };
+    });
 
-    window.addAccessCode = async function () {
+    // Смена кода администратора
+    document.getElementById("changeAdminBtn").addEventListener("click", async () => {
+      const oldCode = document.getElementById("oldCode").value.trim();
       const newCode = document.getElementById("newCode").value.trim();
-      const newRole = document.getElementById("newRole").value;
-      if (!newCode) return;
 
-      await addDoc(collection(db, "accessCodes"), {
-        code: newCode,
-        role: newRole
-      });
+      if (!oldCode || !newCode) {
+        alert("❗ Введите оба кода");
+        return;
+      }
 
-      document.getElementById("adminMessage").textContent = "✅ Код добавлен!";
+      const ref = doc(db, "accessCodes", "Admin");
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        alert("❌ Документ Admin не найден");
+        return;
+      }
+
+      const currentCode = snap.data().code;
+
+      if (oldCode !== currentCode) {
+        alert("❌ Старый код неверный");
+        return;
+      }
+
+      await updateDoc(ref, { code: newCode });
+      alert("✅ Код успешно обновлён");
+      document.getElementById("oldCode").value = "";
       document.getElementById("newCode").value = "";
-      setTimeout(() => {
-        document.getElementById("adminMessage").textContent = "";
-      }, 3000);
-    };
-
-    window.changeAdminCode = async function () {
-      const oldCode = document.getElementById("oldAdminCode").value.trim();
-      const newCode = document.getElementById("newAdminCode").value.trim();
-      const q = await getDocs(collection(db, "accessCodes"));
-
-      let updated = false;
-      for (const docSnap of q.docs) {
-        const data = docSnap.data();
-        if (data.role === "admin" && data.code === oldCode) {
-          await updateDoc(doc(db, "accessCodes", docSnap.id), { code: newCode });
-          updated = true;
-          break;
-        }
-      }
-
-      const status = document.getElementById("changeAdminStatus");
-      if (updated) {
-        status.textContent = "✅ Код администратора обновлён.";
-      } else {
-        status.textContent = "❌ Старый код не найден или неверный.";
-      }
-    };
-
-    window.addClass = async function () {
-      const className = document.getElementById("className").value.trim();
-      const teacherName = document.getElementById("teacherName").value.trim();
-      if (!className || !teacherName) return;
-
-      classes.push({ className, teacherName, students: [] });
-      await setDoc(doc(db, "data", "classes"), { list: classes });
-      renderClasses();
-    };
-
-    async function loadData() {
-      const docSnap = await getDoc(doc(db, "data", "classes"));
-      if (docSnap.exists()) {
-        classes = docSnap.data().list || [];
-      }
-      renderClasses();
-    }
-
-    window.addStudent = async function (index) {
-      const input = document.getElementById(`student-${index}`);
-      if (!input.value.trim()) return;
-      classes[index].students.push(input.value.trim());
-      input.value = "";
-      await setDoc(doc(db, "data", "classes"), { list: classes });
-      renderClasses();
-    };
-
-    function renderClasses() {
-      const container = document.getElementById("classList");
-      container.innerHTML = "";
-      classes.forEach((cls, i) => {
-        const div = document.createElement("div");
-        div.className = "bg-white p-4 border rounded shadow";
-        div.innerHTML = `
-          <h2 class="text-xl font-bold text-blue-700">${cls.className} — ${cls.teacherName}</h2>
-          <ul class="mt-2 text-sm text-gray-700">${cls.students.map(s => `<li>👨‍🎓 ${s}</li>`).join("")}</ul>
-          ${(userRole === "teacher" || userRole === "admin") ? `
-            <div class="mt-2 flex gap-2">
-              <input id="student-${i}" placeholder="Имя ученика" class="border p-1 rounded w-full sm:w-auto">
-              <button onclick="addStudent(${i})" class="bg-green-600 text-white px-3 py-1 rounded">Добавить</button>
-            </div>` : ""}
-        `;
-        container.appendChild(div);
-      });
-    }
+    });
   </script>
-</head>
-<body class="bg-blue-50 min-h-screen text-gray-800">
-  <div class="max-w-4xl mx-auto px-4 py-6">
-    <!-- Вход -->
-    <div id="loginSection" class="bg-white p-6 rounded shadow max-w-md mx-auto">
-      <h1 class="text-2xl font-bold text-center mb-4">🔐 Вход по коду</h1>
-      <input id="loginCode" type="text" placeholder="Введите код доступа" class="border p-2 w-full mb-3 rounded">
-      <button onclick="checkAccessCode()" class="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700">Войти</button>
-      <p id="loginError" class="text-red-600 text-sm mt-2 hidden">⛔ Неверный код</p>
-    </div>
-
-    <!-- Админ-панель -->
-    <div id="adminPanel" class="hidden bg-white p-6 rounded shadow mt-6">
-      <h2 class="text-xl font-bold mb-3">👑 Панель администратора: добавить код</h2>
-      <div class="flex flex-col sm:flex-row gap-2 mb-2">
-        <input id="newCode" placeholder="Код (например: teach001)" class="border p-2 rounded w-full sm:w-auto">
-        <select id="newRole" class="border p-2 rounded w-full sm:w-auto">
-          <option value="teacher">Учитель</option>
-          <option value="student">Ученик</option>
-        </select>
-        <button onclick="addAccessCode()" class="bg-green-600 text-white px-4 py-2 rounded">Добавить</button>
-      </div>
-      <p id="adminMessage" class="text-green-600 text-sm"></p>
-    </div>
-
-    <!-- Смена кода -->
-    <div id="changeCodePanel" class="hidden bg-white p-6 rounded shadow mt-4">
-      <h2 class="text-xl font-bold mb-3">🔁 Сменить код администратора</h2>
-      <input id="oldAdminCode" placeholder="Старый код" class="border p-2 rounded w-full mb-2">
-      <input id="newAdminCode" placeholder="Новый код" class="border p-2 rounded w-full mb-2">
-      <button onclick="changeAdminCode()" class="bg-indigo-600 text-white px-4 py-2 rounded">Обновить</button>
-      <p id="changeAdminStatus" class="mt-2 text-sm text-green-700"></p>
-    </div>
-
-    <!-- Контент -->
-    <div id="mainContent" class="hidden mt-6">
-      <div id="classForm" class="bg-white p-5 rounded shadow mb-6 border border-blue-200 hidden">
-        <h2 class="text-xl font-semibold mb-3">➕ Добавить класс</h2>
-        <div class="flex flex-col sm:flex-row gap-2">
-          <input id="className" class="border border-gray-300 p-2 rounded w-full" placeholder="Название класса" />
-          <input id="teacherName" class="border border-gray-300 p-2 rounded w-full" placeholder="Имя учителя" />
-          <button onclick="addClass()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Добавить</button>
-        </div>
-      </div>
-      <div id="classList" class="space-y-6"></div>
-    </div>
-  </div>
 </body>
 </html>
