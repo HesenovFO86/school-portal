@@ -1,130 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Школьный портал</title>
   <style>
     body {
+      background-color: #e8f0fe;
       font-family: sans-serif;
-      background: #eaf2ff;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
     }
-    .box {
+    .card {
       background: white;
-      padding: 30px;
-      border-radius: 10px;
-      width: 300px;
+      padding: 2rem;
+      border-radius: 1rem;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
     }
     input, select, button {
+      margin: 0.5rem 0;
+      padding: 0.6rem;
       width: 100%;
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 16px;
+      font-size: 1rem;
     }
     h2 {
-      text-align: center;
+      margin-bottom: 1rem;
+    }
+    #adminPanel {
+      display: none;
+      margin-top: 2rem;
     }
   </style>
 </head>
 <body>
-  <div class="box">
+
+  <div class="card" id="loginForm">
     <h2 id="title">Школьный портал</h2>
     <input type="text" id="username" placeholder="Имя пользователя" />
-    <input type="password" id="password" placeholder="Пароль (только цифры)" />
+    <input type="password" id="password" placeholder="Пароль" />
     <button onclick="login()" id="loginBtn">Войти</button>
-    <select id="languageSelect" onchange="changeLanguage()">
+    <select id="languageSelect" onchange="changeLanguage(this.value)">
       <option value="ru">Русский</option>
       <option value="en">English</option>
-      <option value="az">Azərbaycanca</option>
+      <option value="az">Azərbaycan dili</option>
     </select>
   </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <div id="adminPanel" class="card">
+    <h2 id="adminTitle">Панель администратора</h2>
+    <p id="adminWelcome">Добро пожаловать, админ!</p>
+  </div>
 
-  <script>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
     const firebaseConfig = {
-      apiKey: "AIzaSyDSJ7JH_P1lVtyn_yWGZTk0V4TKbEK76M",
+      apiKey: "AIzaSyDSU7JH_P1IVtyn_yWGZTk0V4TKbEK76M",
       authDomain: "school-portal-5e058.firebaseapp.com",
       projectId: "school-portal-5e058",
       storageBucket: "school-portal-5e058.appspot.com",
-      messagingSenderId: "288051785937",
-      appId: "1:288051785937:web:13b88ee9549bc8c96695f0"
+      messagingSenderId: "288058178593",
+      appId: "1:288058178593:web:13b88ee9549bc8c96695f0"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     async function login() {
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
 
-      if (!username || !password || isNaN(password)) {
-        alert(translations[currentLang].invalid);
+      if (!username || !password) {
+        alert(langData[currentLang].fill);
         return;
       }
 
-      try {
-        const doc = await db.collection("accessCodes").doc(username).get();
-        if (!doc.exists) {
-          alert(translations[currentLang].invalid);
-          return;
-        }
-        const data = doc.data();
+      const ref = doc(db, "accessCodes", username);
+      const docSnap = await getDoc(ref);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
         if (data.password === password) {
-          alert(translations[currentLang].welcome + ": " + username + " (" + data.role + ")");
-          // redirect or load panel
+          alert(`${langData[currentLang].welcome}: ${username} (${data.role})`);
+          document.getElementById("loginForm").style.display = "none";
+          if (data.role === "admin") {
+            document.getElementById("adminPanel").style.display = "block";
+          }
         } else {
-          alert(translations[currentLang].invalid);
+          alert(langData[currentLang].invalid);
         }
-      } catch (e) {
-        console.error("Ошибка входа", e);
-        alert("Ошибка подключения к базе данных");
+      } else {
+        alert(langData[currentLang].invalid);
       }
     }
 
-    const translations = {
+    const langData = {
       ru: {
         title: "Школьный портал",
-        invalid: "Неверное имя или пароль",
-        welcome: "Добро пожаловать"
+        login: "Войти",
+        fill: "Пожалуйста, заполните поля",
+        invalid: "Неверное имя или пароль!",
+        welcome: "Добро пожаловать",
+        adminPanel: "Панель администратора",
+        adminWelcome: "Добро пожаловать, админ!"
       },
       en: {
         title: "School Portal",
-        invalid: "Invalid name or password",
-        welcome: "Welcome"
+        login: "Login",
+        fill: "Please fill in all fields",
+        invalid: "Invalid username or password!",
+        welcome: "Welcome",
+        adminPanel: "Admin Panel",
+        adminWelcome: "Welcome, admin!"
       },
       az: {
         title: "Məktəb Portalı",
-        invalid: "Yanlış ad və ya şifrə",
-        welcome: "Xoş gəlmisiniz"
+        login: "Daxil ol",
+        fill: "Zəhmət olmasa bütün sahələri doldurun",
+        invalid: "Yanlış istifadəçi adı və ya şifrə!",
+        welcome: "Xoş gəlmisiniz",
+        adminPanel: "Administrator Paneli",
+        adminWelcome: "Xoş gəlmisiniz, admin!"
       }
     };
 
     let currentLang = "ru";
 
-    function changeLanguage() {
-      const lang = document.getElementById("languageSelect").value;
+    function changeLanguage(lang) {
       currentLang = lang;
-      document.getElementById("title").innerText = translations[lang].title;
-      document.getElementById("username").placeholder =
-        lang === "ru" ? "Имя пользователя" :
-        lang === "en" ? "Username" : "İstifadəçi adı";
-      document.getElementById("password").placeholder =
-        lang === "ru" ? "Пароль (только цифры)" :
-        lang === "en" ? "Password (numbers only)" : "Şifrə (yalnız rəqəmlər)";
-      document.getElementById("loginBtn").innerText =
-        lang === "ru" ? "Войти" :
-        lang === "en" ? "Login" : "Daxil ol";
+      document.getElementById("title").innerText = langData[lang].title;
+      document.getElementById("loginBtn").innerText = langData[lang].login;
+      document.getElementById("adminTitle").innerText = langData[lang].adminPanel;
+      document.getElementById("adminWelcome").innerText = langData[lang].adminWelcome;
     }
-
-    changeLanguage(); // инициализация
   </script>
 </body>
 </html>
