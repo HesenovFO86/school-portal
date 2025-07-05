@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Школьный портал</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getFirestore, doc, getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDSU7JH_P11Vytn_yWGZTk0VV4TKbEK76M",
@@ -19,206 +22,103 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const loginPage = document.getElementById('loginPage');
-      const portalPage = document.getElementById('portalPage');
-      const adminPanel = document.getElementById('adminPanel');
-      const loginForm = document.getElementById('loginForm');
-      const roleTitle = document.getElementById('roleTitle');
-      const languageSelect = document.getElementById('languageSelect');
+    const t = {
+      ru: {
+        title: "Школьный портал",
+        enterId: "Введите имя пользователя",
+        enterPass: "Введите пароль",
+        login: "Войти"
+      },
+      en: {
+        title: "School Portal",
+        enterId: "Enter username",
+        enterPass: "Enter password",
+        login: "Login"
+      },
+      az: {
+        title: "Məktəb Portalı",
+        enterId: "İstifadəçi adını daxil edin",
+        enterPass: "Şifrəni daxil edin",
+        login: "Daxil ol"
+      }
+    };
 
-      const texts = {
-        ru: {
-          title: "Школьный портал",
-          codePlaceholder: "Введите код доступа",
-          loginBtn: "Войти",
-          adminPanelTitle: "Панель администратора: добавить код",
-          addBtn: "Добавить",
-          changeCode: "Сменить код администратора",
-          oldCode: "Старый код",
-          newCode: "Новый код",
-          updateBtn: "Обновить",
-          roleAdmin: "Администратор",
-          roleTeacher: "Учитель",
-          roleStudent: "Ученик",
-          invalid: "Неверный код",
-          empty: "Пожалуйста, заполните все поля"
-        },
-        az: {
-          title: "Məktəb portalı",
-          codePlaceholder: "Giriş kodunu daxil edin",
-          loginBtn: "Daxil ol",
-          adminPanelTitle: "Administrator paneli: kod əlavə et",
-          addBtn: "Əlavə et",
-          changeCode: "Administrator kodunu dəyiş",
-          oldCode: "Köhnə kod",
-          newCode: "Yeni kod",
-          updateBtn: "Yenilə",
-          roleAdmin: "Administrator",
-          roleTeacher: "Müəllim",
-          roleStudent: "Şagird",
-          invalid: "Yanlış kod",
-          empty: "Zəhmət olmasa bütün sahələri doldurun"
-        },
-        en: {
-          title: "School Portal",
-          codePlaceholder: "Enter access code",
-          loginBtn: "Login",
-          adminPanelTitle: "Admin panel: add access code",
-          addBtn: "Add",
-          changeCode: "Change admin code",
-          oldCode: "Old code",
-          newCode: "New code",
-          updateBtn: "Update",
-          roleAdmin: "Administrator",
-          roleTeacher: "Teacher",
-          roleStudent: "Student",
-          invalid: "Invalid code",
-          empty: "Please fill in all fields"
-        }
-      };
+    let currentLang = 'ru';
+    function updateLang(lang) {
+      currentLang = lang;
+      const tr = t[lang];
+      document.getElementById("title").textContent = tr.title;
+      document.getElementById("username").placeholder = tr.enterId;
+      document.getElementById("password").placeholder = tr.enterPass;
+      document.getElementById("loginBtn").textContent = tr.login;
+    }
 
-      let currentLang = 'ru';
-      const updateTexts = () => {
-        const t = texts[currentLang];
-        document.getElementById('mainTitle').textContent = t.title;
-        document.getElementById('codeInput').placeholder = t.codePlaceholder;
-        document.getElementById('loginBtn').textContent = t.loginBtn;
-        document.getElementById('adminPanelTitle').textContent = t.adminPanelTitle;
-        document.getElementById('addBtn').textContent = t.addBtn;
-        document.getElementById('changeTitle').textContent = t.changeCode;
-        document.getElementById('oldCode').placeholder = t.oldCode;
-        document.getElementById('newCode').placeholder = t.newCode;
-        document.getElementById('updateBtn').textContent = t.updateBtn;
-        document.getElementById('roleAdmin').textContent = t.roleAdmin;
-        document.getElementById('roleTeacher').textContent = t.roleTeacher;
-        document.getElementById('roleStudent').textContent = t.roleStudent;
-      };
-
-      languageSelect.addEventListener('change', () => {
-        currentLang = languageSelect.value;
-        updateTexts();
+    window.onload = () => {
+      document.getElementById("lang").addEventListener("change", e => {
+        updateLang(e.target.value);
       });
 
-      updateTexts();
+      document.getElementById("loginBtn").addEventListener("click", async () => {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const docRef = doc(db, "accessCodes", username);
+        const docSnap = await getDoc(docRef);
 
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const code = document.getElementById('codeInput').value.trim();
-        if (!code) return alert(texts[currentLang].empty);
-
-        const roles = ['Admin', 'Teacher', 'Student'];
-        for (let role of roles) {
-          const docSnap = await getDoc(doc(db, "accessCodes", role));
-          if (docSnap.exists() && docSnap.data().code === code) {
-            loginPage.style.display = 'none';
-            portalPage.style.display = 'block';
-            roleTitle.textContent = texts[currentLang]['role' + role];
-            if (role === 'Admin') adminPanel.style.display = 'block';
-            return;
-          }
-        }
-
-        alert(texts[currentLang].invalid);
-      });
-
-      document.getElementById('addBtn').addEventListener('click', async () => {
-        const code = document.getElementById('newAccessCode').value.trim();
-        const role = document.getElementById('roleSelect').value;
-        if (!code) return alert(texts[currentLang].empty);
-        await setDoc(doc(db, "accessCodes", role), { code });
-        alert("✅ Код добавлен!");
-        document.getElementById('newAccessCode').value = '';
-      });
-
-      document.getElementById('updateBtn').addEventListener('click', async () => {
-        const oldCode = document.getElementById('oldCode').value.trim();
-        const newCode = document.getElementById('newCode').value.trim();
-        if (!oldCode || !newCode) return alert(texts[currentLang].empty);
-
-        const adminDoc = await getDoc(doc(db, "accessCodes", "Admin"));
-        if (adminDoc.exists() && adminDoc.data().code === oldCode) {
-          await setDoc(doc(db, "accessCodes", "Admin"), { code: newCode });
-          alert("🔐 Код администратора обновлён!");
-          document.getElementById('oldCode').value = '';
-          document.getElementById('newCode').value = '';
+        if (docSnap.exists() && docSnap.data().password === password) {
+          const role = docSnap.data().role;
+          alert("Успешный вход как: " + role);
+          // Тут можно перенаправить пользователя: window.location.href = "/dashboard.html"
         } else {
-          alert(texts[currentLang].invalid);
+          alert("Неверное имя или пароль!");
         }
       });
-    });
+
+      updateLang(currentLang);
+    };
   </script>
   <style>
     body {
-      font-family: Arial;
-      background: #eef5ff;
-      margin: 0;
-      padding: 0;
-      text-align: center;
+      background: #eef3fc;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
-    h1 { color: #1a3f87; }
-    .panel {
+    .box {
       background: white;
-      padding: 20px;
-      margin: 15px auto;
-      width: 90%;
-      max-width: 500px;
+      padding: 30px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 300px;
     }
     input, select, button {
+      margin-top: 10px;
       width: 100%;
       padding: 10px;
-      margin: 6px 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+      font-size: 16px;
     }
     button {
-      background-color: #246bff;
+      background: #2563eb;
       color: white;
       border: none;
-      font-weight: bold;
+      border-radius: 6px;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #1a52c9;
-    }
-    #portalPage { display: none; }
   </style>
 </head>
 <body>
-  <div class="panel" id="loginPage">
-    <h1 id="mainTitle">Школьный портал</h1>
-    <form id="loginForm">
-      <input type="text" id="codeInput" placeholder="Введите код доступа" required>
-      <button id="loginBtn" type="submit">Войти</button>
-    </form>
-    <br>
-    <select id="languageSelect">
+  <div class="box">
+    <h2 id="title">Школьный портал</h2>
+    <input type="text" id="username" placeholder="Введите имя пользователя" />
+    <input type="password" id="password" placeholder="Введите пароль" />
+    <button id="loginBtn">Войти</button>
+    <select id="lang">
       <option value="ru">Русский</option>
-      <option value="az">Azərbaycanca</option>
       <option value="en">English</option>
+      <option value="az">Azərbaycanca</option>
     </select>
-  </div>
-
-  <div id="portalPage">
-    <h1 id="roleTitle"></h1>
-
-    <div id="adminPanel" class="panel" style="display:none;">
-      <h3 id="adminPanelTitle">Панель администратора: добавить код</h3>
-      <input type="text" id="newAccessCode" placeholder="Код (например: teach001)">
-      <select id="roleSelect">
-        <option value="Teacher" id="roleTeacher">Учитель</option>
-        <option value="Student" id="roleStudent">Ученик</option>
-      </select>
-      <button id="addBtn">Добавить</button>
-
-      <hr>
-      <h3 id="changeTitle">Сменить код администратора</h3>
-      <input type="text" id="oldCode" placeholder="Старый код">
-      <input type="text" id="newCode" placeholder="Новый код">
-      <button id="updateBtn">Обновить</button>
-    </div>
   </div>
 </body>
 </html>
