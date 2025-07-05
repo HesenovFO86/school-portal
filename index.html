@@ -1,26 +1,43 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Школьный портал</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #e9f0ff; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 15px rgba(0,0,0,0.1); width: 300px; text-align: center; }
-    input, select, button { margin: 10px 0; padding: 10px; width: 100%; border-radius: 5px; border: 1px solid #ccc; }
-    button { background-color: #1e40af; color: white; font-weight: bold; border: none; cursor: pointer; }
-    h1 { margin-bottom: 20px; color: #1e3a8a; }
+    body {
+      background-color: #e9f0ff;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      margin: 100px auto;
+    }
+    input, select, button {
+      margin-top: 10px;
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+    }
+    h1 {
+      color: #1d3c78;
+    }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1 id="title">Школьный портал</h1>
-    <input type="text" id="username" placeholder="Имя (например: admin)" />
-    <input type="password" id="password" placeholder="Пароль (только цифры)" />
-    <button onclick="login()"><span id="loginText">Войти</span></button>
-    <select id="language" onchange="setLanguage(this.value)">
+  <div class="card">
+    <h1 id="portalTitle">Школьный портал</h1>
+    <input id="username" placeholder="Имя" />
+    <input id="password" type="password" placeholder="Пароль (123456)" />
+    <button onclick="login()" id="loginButton">Войти</button>
+    <select id="language" onchange="changeLang()">
       <option value="ru">Русский</option>
       <option value="en">English</option>
       <option value="az">Azərbaycan</option>
@@ -29,7 +46,7 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyDSU7JH_P1IVtyn_yWGZTk8VV4TKbEK76M",
+      apiKey: "AIzaSyDSU7JH_P1IVtyn_yWGZTk8VVT4TKbEK76M",
       authDomain: "school-portal-5e058.firebaseapp.com",
       projectId: "school-portal-5e058",
       storageBucket: "school-portal-5e058.appspot.com",
@@ -40,63 +57,55 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const messages = {
+    const translations = {
       ru: {
-        welcome: "Добро пожаловать",
-        error: "Неверное имя или пароль!",
-        login: "Войти",
-        title: "Школьный портал"
+        title: 'Школьный портал',
+        login: 'Войти',
+        username: 'Имя',
+        password: 'Пароль (123456)'
       },
       en: {
-        welcome: "Welcome",
-        error: "Wrong name or password!",
-        login: "Login",
-        title: "School Portal"
+        title: 'School Portal',
+        login: 'Login',
+        username: 'Name',
+        password: 'Password (123456)'
       },
       az: {
-        welcome: "Xoş gəlmisiniz",
-        error: "Yanlış ad və ya şifrə!",
-        login: "Daxil ol",
-        title: "Məktəb portalı"
+        title: 'Məktəb portalı',
+        login: 'Daxil ol',
+        username: 'Ad',
+        password: 'Şifrə (123456)'
       }
     };
 
-    let currentLang = "ru";
-    function setLanguage(lang) {
-      currentLang = lang;
-      document.getElementById("loginText").innerText = messages[lang].login;
-      document.getElementById("title").innerText = messages[lang].title;
-      document.getElementById("username").placeholder = {
-        ru: "Имя (например: admin)",
-        en: "Name (e.g. admin)",
-        az: "Ad (məs: admin)"
-      }[lang];
-      document.getElementById("password").placeholder = {
-        ru: "Пароль (только цифры)",
-        en: "Password (digits only)",
-        az: "Şifrə (yalnız rəqəmlər)"
-      }[lang];
+    function changeLang() {
+      const lang = document.getElementById("language").value;
+      const t = translations[lang];
+      document.getElementById("portalTitle").innerText = t.title;
+      document.getElementById("loginButton").innerText = t.login;
+      document.getElementById("username").placeholder = t.username;
+      document.getElementById("password").placeholder = t.password;
     }
 
     async function login() {
       const name = document.getElementById("username").value.trim();
       const pass = document.getElementById("password").value.trim();
-      if (!name || !pass) return;
 
-      try {
-        const docRef = db.collection("accessCodes").doc(name);
-        const doc = await docRef.get();
-        if (doc.exists && doc.data().password === pass) {
-          const role = doc.data().role || "пользователь";
-          alert(`${messages[currentLang].welcome}: ${name} (${role})`);
-        } else {
-          alert(messages[currentLang].error);
-        }
-      } catch (e) {
-        alert("Ошибка подключения к базе данных.");
-        console.error(e);
+      if (!name || !pass) return alert("Fill in all fields");
+
+      const doc = await db.collection("accessCodes").doc(name).get();
+      if (!doc.exists) return alert("Неверное имя или пароль!");
+
+      const data = doc.data();
+      if (data.password === pass) {
+        alert(`Добро пожаловать: ${name} (${data.role})`);
+        // Показать панель администратора при необходимости
+      } else {
+        alert("Неверный пароль!");
       }
     }
+
+    changeLang(); // установить язык по умолчанию
   </script>
 </body>
 </html>
