@@ -71,7 +71,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
 
   <script>
-    // Конфигурация Firebase (замените на свои реальные данные)
+    // Конфигурация Firebase (убедитесь что данные верные)
     const firebaseConfig = {
       apiKey: "AIzaSyDSU7JH_P1IVtyn_yWGZTk8VVT4TkEk76M",
       authDomain: "school-portal-5e058.firebaseapp.com",
@@ -82,15 +82,16 @@
     };
 
     // Инициализация Firebase
+    let db;
     try {
-      firebase.initializeApp(firebaseConfig);
+      const app = firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
       console.log("Firebase успешно инициализирован");
     } catch (error) {
       console.error("Ошибка инициализации Firebase:", error);
       showError("Ошибка подключения к системе");
     }
 
-    const db = firebase.firestore();
     const elements = {
       title: document.getElementById('title'),
       username: document.getElementById('username'),
@@ -183,9 +184,16 @@
 
       // Блокировка кнопки во время запроса
       elements.loginBtn.disabled = true;
+      const originalButtonText = elements.loginBtn.textContent;
       elements.loginBtn.textContent = t.loading;
 
       try {
+        // Проверяем что Firebase инициализирован
+        if (!db) {
+          showError(t.connectionError);
+          return;
+        }
+
         const docRef = await db.collection("accessCodes").doc(username).get();
         
         if (!docRef.exists) {
@@ -206,7 +214,7 @@
         showError(t.connectionError);
       } finally {
         elements.loginBtn.disabled = false;
-        elements.loginBtn.textContent = t.login;
+        elements.loginBtn.textContent = originalButtonText;
       }
     }
   </script>
