@@ -1,85 +1,13 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Школьный портал</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, doc, getDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDSU7JH_P11Vytn_yWGZTk0VV4TKbEK76M",
-      authDomain: "school-portal-5e058.firebaseapp.com",
-      projectId: "school-portal-5e058",
-      storageBucket: "school-portal-5e058.appspot.com",
-      messagingSenderId: "288051785937",
-      appId: "1:288051785937:web:13b88ee9549bc0c96695f0"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const t = {
-      ru: {
-        title: "Школьный портал",
-        enterId: "Введите имя пользователя",
-        enterPass: "Введите пароль",
-        login: "Войти"
-      },
-      en: {
-        title: "School Portal",
-        enterId: "Enter username",
-        enterPass: "Enter password",
-        login: "Login"
-      },
-      az: {
-        title: "Məktəb Portalı",
-        enterId: "İstifadəçi adını daxil edin",
-        enterPass: "Şifrəni daxil edin",
-        login: "Daxil ol"
-      }
-    };
-
-    let currentLang = 'ru';
-    function updateLang(lang) {
-      currentLang = lang;
-      const tr = t[lang];
-      document.getElementById("title").textContent = tr.title;
-      document.getElementById("username").placeholder = tr.enterId;
-      document.getElementById("password").placeholder = tr.enterPass;
-      document.getElementById("loginBtn").textContent = tr.login;
-    }
-
-    window.onload = () => {
-      document.getElementById("lang").addEventListener("change", e => {
-        updateLang(e.target.value);
-      });
-
-      document.getElementById("loginBtn").addEventListener("click", async () => {
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-        const docRef = doc(db, "accessCodes", username);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists() && docSnap.data().password === password) {
-          const role = docSnap.data().role;
-          alert("Успешный вход как: " + role);
-          // Тут можно перенаправить пользователя: window.location.href = "/dashboard.html"
-        } else {
-          alert("Неверное имя или пароль!");
-        }
-      });
-
-      updateLang(currentLang);
-    };
-  </script>
   <style>
     body {
-      background: #eef3fc;
       font-family: sans-serif;
+      background: #eaf2ff;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -88,37 +16,115 @@
     .box {
       background: white;
       padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
-      text-align: center;
+      border-radius: 10px;
       width: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     input, select, button {
-      margin-top: 10px;
       width: 100%;
+      margin: 10px 0;
       padding: 10px;
       font-size: 16px;
     }
-    button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    h2 {
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <div class="box">
     <h2 id="title">Школьный портал</h2>
-    <input type="text" id="username" placeholder="Введите имя пользователя" />
-    <input type="password" id="password" placeholder="Введите пароль" />
-    <button id="loginBtn">Войти</button>
-    <select id="lang">
+    <input type="text" id="username" placeholder="Имя пользователя" />
+    <input type="password" id="password" placeholder="Пароль (только цифры)" />
+    <button onclick="login()" id="loginBtn">Войти</button>
+    <select id="languageSelect" onchange="changeLanguage()">
       <option value="ru">Русский</option>
       <option value="en">English</option>
       <option value="az">Azərbaycanca</option>
     </select>
   </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDSJ7JH_P1lVtyn_yWGZTk0V4TKbEK76M",
+      authDomain: "school-portal-5e058.firebaseapp.com",
+      projectId: "school-portal-5e058",
+      storageBucket: "school-portal-5e058.appspot.com",
+      messagingSenderId: "288051785937",
+      appId: "1:288051785937:web:13b88ee9549bc8c96695f0"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function login() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!username || !password || isNaN(password)) {
+        alert(translations[currentLang].invalid);
+        return;
+      }
+
+      try {
+        const doc = await db.collection("accessCodes").doc(username).get();
+        if (!doc.exists) {
+          alert(translations[currentLang].invalid);
+          return;
+        }
+        const data = doc.data();
+        if (data.password === password) {
+          alert(translations[currentLang].welcome + ": " + username + " (" + data.role + ")");
+          // redirect or load panel
+        } else {
+          alert(translations[currentLang].invalid);
+        }
+      } catch (e) {
+        console.error("Ошибка входа", e);
+        alert("Ошибка подключения к базе данных");
+      }
+    }
+
+    const translations = {
+      ru: {
+        title: "Школьный портал",
+        invalid: "Неверное имя или пароль",
+        welcome: "Добро пожаловать"
+      },
+      en: {
+        title: "School Portal",
+        invalid: "Invalid name or password",
+        welcome: "Welcome"
+      },
+      az: {
+        title: "Məktəb Portalı",
+        invalid: "Yanlış ad və ya şifrə",
+        welcome: "Xoş gəlmisiniz"
+      }
+    };
+
+    let currentLang = "ru";
+
+    function changeLanguage() {
+      const lang = document.getElementById("languageSelect").value;
+      currentLang = lang;
+      document.getElementById("title").innerText = translations[lang].title;
+      document.getElementById("username").placeholder =
+        lang === "ru" ? "Имя пользователя" :
+        lang === "en" ? "Username" : "İstifadəçi adı";
+      document.getElementById("password").placeholder =
+        lang === "ru" ? "Пароль (только цифры)" :
+        lang === "en" ? "Password (numbers only)" : "Şifrə (yalnız rəqəmlər)";
+      document.getElementById("loginBtn").innerText =
+        lang === "ru" ? "Войти" :
+        lang === "en" ? "Login" : "Daxil ol";
+    }
+
+    changeLanguage(); // инициализация
+  </script>
 </body>
 </html>
