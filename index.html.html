@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Школьный портал — Вход</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f6fb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      color: #2b61d1;
+      margin-bottom: 20px;
+    }
+    .login-box {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 300px;
+    }
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #2b61d1;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1f4bb5;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Школьный портал</h1>
+  <div class="login-box">
+    <h2>Вход в систему</h2>
+    <input type="text" id="login" placeholder="Логин" />
+    <input type="password" id="password" placeholder="Пароль" />
+    <button onclick="login()">Войти</button>
+    <div id="error" class="error"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCB-B9qdkIZvJZRN4BGwZU9LTUhnVBF0",
+      authDomain: "w-0001-158e0.firebaseapp.com",
+      projectId: "w-0001-158e0",
+      storageBucket: "w-0001-158e0.appspot.com",
+      messagingSenderId: "657434394478",
+      appId: "1:657434394478:web:7cb5f34dc24cf80ec4b7f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function login() {
+      const loginInput = document.getElementById("login").value.trim();
+      const passwordInput = document.getElementById("password").value.trim();
+      const errorDiv = document.getElementById("error");
+
+      if (!loginInput || !passwordInput) {
+        errorDiv.textContent = "Введите логин и пароль.";
+        return;
+      }
+
+      try {
+        const querySnapshot = await getDocs(collection(db, "accessCodes"));
+        let found = false;
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.id === loginInput && data.password === passwordInput) {
+            found = true;
+            if (data.role === "admin") {
+              alert("Добро пожаловать, администратор!");
+              // можно перенаправить на админ-панель: window.location.href = "/admin";
+            } else {
+              alert("Добро пожаловать, пользователь!");
+            }
+          }
+        });
+
+        if (!found) {
+          errorDiv.textContent = "Неверное имя пользователя или пароль";
+        } else {
+          errorDiv.textContent = "";
+        }
+      } catch (err) {
+        errorDiv.textContent = "Ошибка входа: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
